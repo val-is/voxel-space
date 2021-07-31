@@ -11,13 +11,14 @@ type Camera struct {
 	Coords
 	Height         float64
 	Heading        float64
+	Pitch          float64
 	FOV            float64
 	RenderDistance float64
 }
 
 const (
 	scaleHeight = 200
-	horizon     = 100
+	horizon     = 0
 )
 
 func drawVertLine(screen *ebiten.Image, x, bottom, top float64, col color.Color) {
@@ -36,9 +37,11 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 	sinphi := math.Sin(c.Heading)
 	cosphi := math.Cos(c.Heading)
 
-	screenW, _ := screen.Size()
+	screenW, screenH := screen.Size()
 
-	dz := 1.0
+	hz := horizon + float64(screenH)*math.Sin(c.Pitch)
+
+	dz := 0.01
 	z := 1.0
 
 	yBuffer := make([]int, screenW)
@@ -56,7 +59,7 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 
 		for i := 0; i < screenW; i++ {
 			mapHeight := m.HeightAt(left)
-			height := (c.Height-mapHeight)/z*scaleHeight + horizon
+			height := (c.Height-mapHeight)/z*scaleHeight + hz
 			drawVertLine(screen, float64(i), height, float64(yBuffer[i]), m.ColorAt(left))
 			if int(height) < yBuffer[i] {
 				yBuffer[i] = int(height)
@@ -66,7 +69,7 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 		}
 
 		z += dz
-		dz += 0.05
+		dz += 0.005
 	}
 
 	return nil

@@ -23,6 +23,7 @@ func main() {
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Test Voxel Engine")
+	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	if err := ebiten.RunGame(&g); err != nil {
 		panic(err)
 	}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
@@ -18,9 +17,6 @@ type Game struct {
 }
 
 func (g *Game) Update(screen *ebiten.Image) error {
-	fmt.Println(ebiten.CurrentFPS())
-	// g.Cam.Y -= 1
-	// g.Cam.X += 0.25
 	vX := 0.0
 	vY := 0.0
 	if ebiten.IsKeyPressed(ebiten.KeyW) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
@@ -53,6 +54,12 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	g.Cam.Heading += -0.002 * float64(cDx)
 	g.Cam.Pitch += -0.002 * float64(cDy)
 
+	if g.Cam.Heading > math.Pi {
+		g.Cam.Heading = -math.Pi + (g.Cam.Heading - math.Pi)
+	} else if g.Cam.Heading < -math.Pi {
+		g.Cam.Heading = math.Pi - (-g.Cam.Heading - math.Pi)
+	}
+
 	h := g.Cam.Heading
 	for h > math.Pi*2 {
 		h -= math.Pi * 2
@@ -64,6 +71,8 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	g.Cam.X -= vX*math.Cos(h) - vY*math.Sin(h)
 	g.Cam.Y -= vX*math.Sin(h) + vY*math.Cos(h)
 	g.Cam.Pitch = math.Min(math.Max(g.Cam.Pitch, -math.Pi/2), math.Pi/2)
+
+	fmt.Println(ebiten.CurrentFPS())
 	return nil
 }
 

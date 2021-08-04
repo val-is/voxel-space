@@ -18,6 +18,7 @@ type Map struct {
 	Heightmap     *ebiten.Image
 	Width, Height float64
 	NormalizedAlt float64
+	Scatters      []*Scatter
 }
 
 func (m *Map) getMapCoords(coords Coords) (x, y int) {
@@ -68,5 +69,6 @@ func LoadMap(dir string) (*Map, error) {
 		Width:         float64(width),
 		Height:        float64(height),
 		NormalizedAlt: mapAlt,
+		Scatters:      make([]*Scatter, 0),
 	}, nil
 }

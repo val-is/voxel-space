@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 
@@ -14,6 +15,7 @@ type Camera struct {
 	Pitch          float64
 	FOV            float64
 	RenderDistance float64
+	buffer         *ebiten.Image
 }
 
 const (
@@ -33,6 +35,11 @@ func drawHorizLine(screen *ebiten.Image, y, left, right float64, col color.Color
 	}
 }
 
+const (
+	scatterDrawDist   = 25
+	scatterFOVPadding = 30 / 180 * math.Pi
+)
+
 func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 	sinphi := math.Sin(c.Heading)
 	cosphi := math.Cos(c.Heading)
@@ -49,6 +56,29 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 		yBuffer[i] = screenHeight
 	}
 
+	// get scatters within the FOV that should be rendered
+	// scattersRendering := make([]*Scatter, 0)
+	leftFOV := c.Heading - c.FOV/2 - scatterFOVPadding
+	if leftFOV < -math.Pi {
+		leftFOV += 2 * math.Pi
+	}
+	rightFOV := c.Heading + c.FOV/2 + scatterFOVPadding
+	if rightFOV < -math.Pi {
+		rightFOV += 2 * math.Pi
+	}
+	for _, scatter := range m.Scatters {
+		dist := math.Hypot(c.X-scatter.X, c.Y-scatter.Y)
+		if dist >= scatterDrawDist {
+			continue
+		}
+		angle := math.Atan2(-(scatter.X - c.X), -(scatter.Y - c.Y))
+		if (leftFOV < rightFOV) && !(leftFOV <= angle && angle <= rightFOV) ||
+			(leftFOV > rightFOV) && !(leftFOV <= angle && angle <= math.Pi || angle <= rightFOV && -math.Pi <= angle) {
+			continue
+		}
+		fmt.Printf("rendering %f <= %f <= %f\n", leftFOV, angle, rightFOV)
+	}
+
 	// render the terrain
 	for z <= c.RenderDistance {
 		left := Coords{c.X + (-cosphi*z - sinphi*z), c.Y + (sinphi*z - cosphi*z)}
@@ -61,6 +91,7 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 			mapHeight := m.HeightAt(left)
 			height := (c.Height-mapHeight)/z*scaleHeight + hz
 			drawVertLine(screen, float64(i), height, float64(yBuffer[i]), m.ColorAt(left))
+			drawVertLine(c.buffer, float64(i), height, float64(yBuffer[i]), color.NRGBA{uint8(z), 0, 0, 255})
 			if int(height) < yBuffer[i] {
 				yBuffer[i] = int(height)
 			}
@@ -71,6 +102,66 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 		z += dz
 		dz += 0.005
 	}
+
+	return nil
+}
+
+func renderScatters(c *Camera, m *Map, screen *ebiten.Image) error {
+	for i := range m.Scatters {
+		if err := drawScatter(c, m, screen, m.Scatters[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func drawScatter(c *Camera, m *Map, screen *ebiten.Image, scatter *Scatter) error {
+	scatterBuffer, err := ebiten.NewImageFromImage(c.buffer, ebiten.FilterDefault)
+	if err != nil {
+		return err
+	}
+	dist := math.Hypot(c.X-scatter.X, c.Y-scatter.Y)
+	if dist > scatterDrawDist {
+		return nil
+	}
+	w, h := scatterBuffer.Size()
+	z, _, _, _ := scatterBuffer.At(200, 200).RGBA()
+	z /= 256
+	fmt.Println(z, dist)
+	for x := 0; x <= w; x++ {
+		for y := 0; y <= h; y++ {
+			col := scatterBuffer.At(x, y)
+			buffDist, _, _, _ := col.RGBA()
+			buffDist /= 256
+			if buffDist <= uint32(dist) || dist == 0 {
+				scatterBuffer.Set(x, y, color.NRGBA{0, 0, 0, 0})
+			} else {
+				scatterBuffer.Set(x, y, color.NRGBA{255, 255, 255, 255})
+			}
+		}
+	}
+
+	screenW, screenH := screen.Size()
+
+	sinphi := math.Sin(c.Heading)
+	cosphi := math.Cos(c.Heading)
+
+	leftX := c.X + (-cosphi*dist - sinphi*dist)
+	rightX := c.X + (cosphi*dist - sinphi*dist)
+
+	dx := (rightX - leftX) / float64(screenW)
+
+	hz := horizon + float64(screenH)*math.Sin(c.Pitch)
+
+	mapHeight := m.HeightAt(scatter.Coords)
+	height := (c.Height-mapHeight-3)/dist*scaleHeight + hz
+	op := ebiten.DrawImageOptions{}
+	op.GeoM.Reset()
+	op.GeoM.Scale(scatterDrawDist/dist*scatter.Scale, scatterDrawDist/dist*scatter.Scale)
+	op.GeoM.Translate((scatter.X-leftX)/dx, height)
+	op.CompositeMode = ebiten.CompositeModeMultiply
+	scatterBuffer.DrawImage(scatter.Sprite, &op)
+	screen.DrawImage(scatterBuffer, nil)
 
 	return nil
 }
@@ -100,11 +191,23 @@ func renderSkybox(c *Camera, m *Map, screen *ebiten.Image) error {
 }
 
 func Render(c *Camera, m *Map, screen *ebiten.Image) error {
-	if err := screen.Clear(); err != nil {
+	if c.buffer == nil {
+		w, h := screen.Size()
+		buf, err := ebiten.NewImage(w, h, ebiten.FilterDefault)
+		if err != nil {
+			return err
+		}
+		c.buffer = buf
+	}
+	if err := c.buffer.Clear(); err != nil {
+		return err
+	} else if err := screen.Clear(); err != nil {
 		return err
 	} else if err := renderSkybox(c, m, screen); err != nil {
 		return err
 	} else if err := renderTerrain(c, m, screen); err != nil {
+		return err
+	} else if err := renderScatters(c, m, screen); err != nil {
 		return err
 	}
 

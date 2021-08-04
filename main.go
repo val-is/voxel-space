@@ -1,6 +1,10 @@
 package main
 
-import "github.com/hajimehoshi/ebiten"
+import (
+	"math"
+
+	"github.com/hajimehoshi/ebiten"
+)
 
 func main() {
 	m, err := LoadMap("maps/ice")
@@ -8,11 +12,17 @@ func main() {
 		panic(err)
 	}
 
+	testScatter, err := NewScatter("doom-thing.png", 0, 0, 0.05)
+	if err != nil {
+		panic(err)
+	}
+	m.Scatters = append(m.Scatters, testScatter)
+
 	cam := &Camera{
 		Coords:         Coords{X: 0, Y: 0},
 		Height:         30,
 		Heading:        0,
-		FOV:            90,
+		FOV:            90.0 / 180.0 * math.Pi,
 		RenderDistance: 1000,
 	}
 

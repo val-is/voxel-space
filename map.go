@@ -21,7 +21,7 @@ type Map struct {
 	Scatters      []*Scatter
 }
 
-func (m *Map) getMapCoords(coords Coords) (x, y int) {
+func (m Map) getMapCoords(coords Coords) (x, y int) {
 	x = int(math.Round(coords.X)) % int(m.Width)
 	if x < 0 {
 		x += int(m.Width)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
@@ -12,9 +11,7 @@ const (
 	screenHeight = 400
 )
 
-var (
-	lastCursorX, lastCursorY int
-)
+var lastCursorX, lastCursorY int
 
 type Game struct {
 	LoadedMap *Map
@@ -72,7 +69,6 @@ func (g *Game) Update(screen *ebiten.Image) error {
 	g.Cam.Y -= vX*math.Sin(h) + vY*math.Cos(h)
 	g.Cam.Pitch = math.Min(math.Max(g.Cam.Pitch, -math.Pi/2), math.Pi/2)
 
-	fmt.Println(ebiten.CurrentFPS())
 	return nil
 }
 

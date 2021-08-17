@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image/color"
 	"math"
 
@@ -37,7 +36,7 @@ func drawHorizLine(screen *ebiten.Image, y, left, right float64, col color.Color
 
 const (
 	scatterDrawDist   = 25
-	scatterFOVPadding = 30 / 180 * math.Pi
+	scatterFOVPadding = 30.0 / 180.0 * math.Pi
 )
 
 func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
@@ -76,7 +75,6 @@ func renderTerrain(c *Camera, m *Map, screen *ebiten.Image) error {
 			(leftFOV > rightFOV) && !(leftFOV <= angle && angle <= math.Pi || angle <= rightFOV && -math.Pi <= angle) {
 			continue
 		}
-		fmt.Printf("rendering %f <= %f <= %f\n", leftFOV, angle, rightFOV)
 	}
 
 	// render the terrain
@@ -127,7 +125,6 @@ func drawScatter(c *Camera, m *Map, screen *ebiten.Image, scatter *Scatter) erro
 	w, h := scatterBuffer.Size()
 	z, _, _, _ := scatterBuffer.At(200, 200).RGBA()
 	z /= 256
-	fmt.Println(z, dist)
 	for x := 0; x <= w; x++ {
 		for y := 0; y <= h; y++ {
 			col := scatterBuffer.At(x, y)
@@ -203,12 +200,12 @@ func Render(c *Camera, m *Map, screen *ebiten.Image) error {
 		return err
 	} else if err := screen.Clear(); err != nil {
 		return err
-	} else if err := renderSkybox(c, m, screen); err != nil {
-		return err
+		// } else if err := renderSkybox(c, m, screen); err != nil {
+		// 	return err
 	} else if err := renderTerrain(c, m, screen); err != nil {
 		return err
-	} else if err := renderScatters(c, m, screen); err != nil {
-		return err
+		// } else if err := renderScatters(c, m, screen); err != nil {
+		// 	return err
 	}
 
 	return nil
